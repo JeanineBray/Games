@@ -3,21 +3,14 @@
 #include "vector" //For the command handling function.
 #include "cctype" //Will be used to eliminate case sensitivity problems.
 
-int main();
-
-void section_command(std::string Cmd, std::string &wd1, std::string &wd2);
-void set_rooms(room *rms);
-
-enum en_DIRS {NORTH, EAST, SOUTH, WEST};
-enum en_ROOMS {SPORTSHOP, CASINO, CARPARK, LOBBY, RESTAURANT, CORRIDOR, STOREROOM, POOL, GARDEN, POND, PUMPROOM};
-
 const int NONE = -1;
-const int DIRS = 4;
 const int ROOMS = 11;
+const int DIRS = 4;
+const int VERBS = 8;
 
-struct word
+struct name //The original author had the identifier set to 'word'. This cannot happen because an error states you are trying to change identifier.
 {
-	std::string word;
+	std::string word; 
 	int code;
 };
 
@@ -27,10 +20,28 @@ struct room
 	int exits_to_room[DIRS];
 };
 
+void section_command(std::string Cmd, std::string &wd1, std::string &wd2);
+void set_rooms(room *rms);
+void set_directions(name *dir);
+bool parser(int &loc, std::string wd1, std::string wd2, name *dir, name *vbs, room *rms);
+void set_verbs(name *vbs);
+
+enum en_DIRS { NORTH, EAST, SOUTH, WEST };
+enum en_ROOMS { SPORTSHOP, CASINO, CARPARK, LOBBY, RESTAURANT, CORRIDOR, STOREROOM, POOL, GARDEN, POND, PUMPROOM };
+enum en_VERBS {GET, DROP, USE, OPEN, CLOSE, EXAMINE, INVENTORY, LOOK};
+
 int main()
 {
+	int location = CARPARK;
+
+	name verbs[VERBS];
+	set_verbs(verbs);
+
 	room rooms[ROOMS];
 	set_rooms(rooms);
+
+	name directions[DIRS];
+	set_directions(directions);
 
 	std::string command;
 	std::string word_1;
@@ -39,18 +50,49 @@ int main()
 	while (word_1 != "QUIT")
 	{
 		command.clear();
+
 		std::cout << "What shall I do?";
 		std::getline(std::cin, command);
 		std::cout << "Your raw command was: " << command << std::endl;
+
 		word_1.clear();
 		word_2.clear();
 
 		section_command(command, word_1, word_2); //Calling the function that handles the command line format. Hasn't been created yet./
+		parser(location, word_1, word_2, directions, verbs, rooms);
+
 		std::cout << word_1 << " " << word_2 << std::endl;
 	}
 
 	system("pause");
 	return 0;
+}
+
+void set_verbs(name * vbs)
+{
+	vbs[GET].code = GET;
+	vbs[GET].word = "GET";
+
+	vbs[DROP].code = DROP;
+	vbs[DROP].word = "DROP";
+
+	vbs[USE].code = USE;
+	vbs[USE].word = "USE";
+
+	vbs[OPEN].code = OPEN;
+	vbs[OPEN].word = "OPEN";
+
+	vbs[CLOSE].code = CLOSE;
+	vbs[CLOSE].word = "CLOSE";
+
+	vbs[EXAMINE].code = EXAMINE;
+	vbs[EXAMINE].word = "EXAMINE";
+
+	vbs[INVENTORY].code = INVENTORY;
+	vbs[INVENTORY].word = "INVENTORY";
+
+	vbs[LOOK].code = LOOK;
+	vbs[LOOK].word = "LOOK";
 }
 
 void set_rooms(room *rms) 
@@ -120,6 +162,66 @@ void set_rooms(room *rms)
 	rms[PUMPROOM].exits_to_room[EAST] = NONE;
 	rms[PUMPROOM].exits_to_room[SOUTH] = NONE;
 	rms[PUMPROOM].exits_to_room[WEST] = NONE;
+}
+
+void set_directions(name *dir)
+{
+	dir[NORTH].code = NORTH ;
+	dir[NORTH].word = "North";
+
+	dir[EAST].code = EAST ;
+	dir[EAST].word = "East";
+
+	dir[SOUTH].code = SOUTH ;
+	dir[SOUTH].word = "South";
+
+	dir[WEST].code = WEST ;
+	dir[WEST].word = "West";
+}
+
+bool parser(int & loc, std::string wd1, std::string wd2, name * dir, name *vbs, room * rms)
+{
+
+	int i;
+	int VERB_ACTION = NONE;
+
+	for (i = 0; i < DIRS; i++)
+	{
+		if (wd1 == dir[i].word)
+		{
+			if (rms[loc].exits_to_room[dir[i].code] != NONE)
+			{
+				loc = rms[loc].exits_to_room[dir[i].code];
+				std::cout << "I am now in a " << rms[loc].description << "." << std::endl;
+				return true;
+			}
+
+			else
+			{
+				std::cout << "No exit that way." << std::endl;
+				return true;
+			}
+		}
+	}
+
+	for (i = 0; i < VERBS; i++) 
+	{
+		if (wd1 == vbs[i].word)
+		{
+			VERB_ACTION = vbs[i].code;
+			break;
+		}
+
+		if (VERB_ACTION == NONE)
+		{
+			std::cout << "No valid command entered." << std::endl;
+			return true;
+		}
+	}
+
+	std::cout << "No valid command entered." << std::endl;
+
+	return false;
 }
 
 void section_command(std::string Cmd, std::string &wd1, std::string &wd2)
