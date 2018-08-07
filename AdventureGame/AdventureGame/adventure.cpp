@@ -23,8 +23,9 @@ struct room
 void section_command(std::string Cmd, std::string &wd1, std::string &wd2);
 void set_rooms(room *rms);
 void set_directions(name *dir);
-bool parser(int &loc, std::string wd1, std::string wd2, name *dir, name *vbs, room *rms);
+bool parser(int &loc, std::string &wd1, std::string &wd2, name * dir, name *vbs, room * rms);
 void set_verbs(name *vbs);
+void look_around(int loc, room *rms, name *dir);
 
 enum en_DIRS { NORTH, EAST, SOUTH, WEST };
 enum en_ROOMS { SPORTSHOP, CASINO, CARPARK, LOBBY, RESTAURANT, CORRIDOR, STOREROOM, POOL, GARDEN, POND, PUMPROOM };
@@ -54,13 +55,17 @@ int main()
 		std::cout << "What shall I do?";
 		std::getline(std::cin, command);
 		std::cout << "Your raw command was: " << command << std::endl;
-
+		
 		word_1.clear();
 		word_2.clear();
 
 		section_command(command, word_1, word_2); //Calling the function that handles the command line format. Hasn't been created yet./
-		parser(location, word_1, word_2, directions, verbs, rooms);
-
+		
+		if (word_1 != "QUIT")
+		{
+			parser(location, word_1, word_2, directions, verbs, rooms);
+		}
+		
 		std::cout << word_1 << " " << word_2 << std::endl;
 	}
 
@@ -68,7 +73,22 @@ int main()
 	return 0;
 }
 
-void set_verbs(name * vbs)
+void look_around(int loc, room *rms, name *dir)
+{
+	int i;
+	std::cout << "I am in a " << rms[loc].description << "." << std::endl;
+
+	// LOOK should also allow the player to see what exits exist from the current room.
+	for (i = 0; i < DIRS; i++)
+	{
+		if (rms[loc].exits_to_room[i] != NONE)
+		{
+			std::cout << "There is an exit " << dir[i].word << " to a " << rms[rms[loc].exits_to_room[i]].description << "." << std::endl;
+		}
+	}
+}
+
+void set_verbs(name *vbs)
 {
 	vbs[GET].code = GET;
 	vbs[GET].word = "GET";
@@ -179,11 +199,9 @@ void set_directions(name *dir)
 	dir[WEST].word = "West";
 }
 
-bool parser(int & loc, std::string wd1, std::string wd2, name * dir, name *vbs, room * rms)
+bool parser(int &loc, std::string &wd1, std::string &wd2, name *dir, name *vbs, room *rms)
 {
-
 	int i;
-	int VERB_ACTION = NONE;
 
 	for (i = 0; i < DIRS; i++)
 	{
@@ -193,33 +211,42 @@ bool parser(int & loc, std::string wd1, std::string wd2, name * dir, name *vbs, 
 			{
 				loc = rms[loc].exits_to_room[dir[i].code];
 				std::cout << "I am now in a " << rms[loc].description << "." << std::endl;
-				return true;
-			}
 
-			else
-			{
-				std::cout << "No exit that way." << std::endl;
 				return true;
 			}
 		}
-	}
 
-	for (i = 0; i < VERBS; i++) 
+		else
+		{
+			std::cout << "No exit that way." << std::endl;
+
+			return true;
+		}
+	}
+	
+	int VERB_ACTION = NONE;
+
+	for (i = 0; i < VERBS; i++)
 	{
 		if (wd1 == vbs[i].word)
 		{
 			VERB_ACTION = vbs[i].code;
 			break;
 		}
-
-		if (VERB_ACTION == NONE)
-		{
-			std::cout << "No valid command entered." << std::endl;
-			return true;
-		}
 	}
 
-	std::cout << "No valid command entered." << std::endl;
+	if (VERB_ACTION == LOOK)
+	{
+		// This is an example of sub proceduralizing a function from the parser.
+		look_around(loc, rms, dir);
+		return true;
+	}
+
+	if (VERB_ACTION == NONE)
+	{
+		std::cout << "No valid command entered." << std::endl;
+		return true;
+	}
 
 	return false;
 }
@@ -274,15 +301,18 @@ void section_command(std::string Cmd, std::string &wd1, std::string &wd2)
 	{
 		std::cout << "No command given" << std::endl;
 	}
-
 	if (words.size() == 1)
+	{
+		wd1 = words.at(0);
+	}
+	if (words.size() == 2)
 	{
 		wd1 = words.at(0);
 		wd2 = words.at(1);
 	}
-
 	if (words.size() > 2)
 	{
-		std::cout << "Command too long. Only type one or two words (Direction or verb and noun)";
+		std::cout << "Command too long. Only type one or two words (direction or verb and noun)" << std::endl;
 	}
 }
+
